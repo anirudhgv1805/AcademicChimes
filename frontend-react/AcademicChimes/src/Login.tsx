@@ -1,43 +1,42 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
   const [credentials, setCredentials] = useState({
     id: '',
     password: '',
     role: 'student'
-  });
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+  })
+  const [error, setError] = useState('')
+  const navigate = useNavigate()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setCredentials({ ...credentials, [e.target.name]: e.target.value });
-  };
+    setCredentials({ ...credentials, [e.target.name]: e.target.value })
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError('');
+    e.preventDefault()
+    setError('')
 
     try {
       const response = await fetch('http://localhost:8080/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
-      });
+      })
 
       if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.token);
-        console.log(data.token);
-        navigate('/dashboard');
+        const data = await response.json()
+        localStorage.setItem('token', data.token)
+        navigate('/dashboard')
       } else {
-        setError('Invalid credentials');
+        setError('Invalid credentials')
       }
     } catch (error) {
-      setError('An error occurred. Please try again.');
+      setError('An error occurred. Please try again.')
     }
-  };
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -94,5 +93,5 @@ export default function Login() {
         </button>
       </form>
     </div>
-  );
+  )
 }

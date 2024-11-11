@@ -1,32 +1,32 @@
-import React, { useContext } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { AuthContext, AuthProvider } from "./auth/AuthContext";
-import Registration from "./Registration";
-import Login from "./Login";
-import Home from "./Home";
+import React from 'react'
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'
+import Login from './Login'
+import Registration from './Registration'
+import Dashboard from './Dashboard'
 
-const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
-    const { isAuthenticated } = useContext(AuthContext);
-    return isAuthenticated ? children : <Navigate to="/login" />;
-};
+const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = localStorage.getItem('token') !== null
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
+}
 
-const App: React.FC = () => {
-    const { isAuthenticated } = useContext(AuthContext);
-
-    return (
-        <AuthProvider>
-            <Router>
-                <Routes>
-                    <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                    <Route path="/register" element={<Registration />} />
-                    <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
-                    
-                    <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} />} />
-
-                </Routes>
-            </Router>
-        </AuthProvider>
-    );
-};
-
-export default App;
+export default function Component() {
+  return (
+    <Router>
+      <div className="min-h-screen bg-gray-100">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Registration />} />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </div>
+    </Router>
+  )
+}
