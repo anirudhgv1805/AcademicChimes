@@ -20,7 +20,9 @@ const App: React.FC = () => {
                     <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
                     <Route path="/register" element={<Registration />} />
                     <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
+                    
                     <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} />} />
+
                 </Routes>
             </Router>
         </AuthProvider>
