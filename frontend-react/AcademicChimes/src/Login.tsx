@@ -29,6 +29,8 @@ export default function Login() {
       if (response.ok) {
         const data = await response.json()
         localStorage.setItem('token', data.token)
+        localStorage.setItem('userId', data.userId)
+        localStorage.setItem('userRole', credentials.role)
         navigate('/dashboard')
       } else {
         setError('Invalid credentials')
