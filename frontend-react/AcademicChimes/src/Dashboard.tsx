@@ -12,6 +12,11 @@ interface User {
   name: string
 }
 
+interface GroupUpdate {
+  type: 'CREATE' | 'UPDATE'
+  group: Group
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const [groups, setGroups] = useState<Group[]>([])
@@ -25,12 +30,14 @@ export default function Dashboard() {
     const setupWebSocket = async () => {
       try {
         await WebSocketService.connect()
-        await WebSocketService.subscribe('/topic/group-updates', (update: { type: string; group: Group }) => {
-          if (update.type === 'CREATE') {
-            setGroups((prevGroups) => [...prevGroups, update.group])
-          } else if (update.type === 'UPDATE') {
+        console.log('WebSocket connected successfully')
+        await WebSocketService.subscribe<GroupUpdate>('/topic/group-updates', (message) => {
+          console.log('Received group update:', message)
+          if (message.type === 'CREATE') {
+            setGroups((prevGroups) => [...prevGroups, message.payload.group])
+          } else if (message.type === 'UPDATE') {
             setGroups((prevGroups) =>
-              prevGroups.map((group) => (group.id === update.group.id ? update.group : group))
+              prevGroups.map((group) => (group.id === message.payload.group.id ? message.payload.group : group))
             )
           }
         })
@@ -48,7 +55,11 @@ export default function Dashboard() {
 
   const fetchGroups = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/chat/groups?userId=${localStorage.getItem('userId')}`)
+      const response = await fetch(`http://localhost:8080/api/chat/groups?userId=${localStorage.getItem('userId')}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
       if (!response.ok) {
         throw new Error('Failed to fetch groups')
       }
@@ -61,7 +72,11 @@ export default function Dashboard() {
 
   const fetchContacts = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/chat/users/search?query=${searchQuery}`)
+      const response = await fetch(`http://localhost:8080/api/chat/users/search?query=${searchQuery}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
       if (!response.ok) {
         throw new Error('Failed to fetch contacts')
       }
@@ -89,7 +104,10 @@ export default function Dashboard() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
-          body: JSON.stringify({ name: groupName, creatorId: localStorage.getItem('userId') }),
+          body: JSON.stringify({ 
+            name: groupName, 
+            creatorId: localStorage.getItem('userId') 
+          }),
         })
         if (!response.ok) {
           throw new Error('Failed to create group')

@@ -12,10 +12,10 @@ public class GroupService {
     @Autowired
     private GroupRepository groupRepository;
 
-    public Group createGroup(String name, User creator) {
+    public Group createGroup(String name, String creatorId) {
         Group group = new Group();
         group.setName(name);
-        group.setCreator(creator);
+        group.setCreator(creatorId);
         return groupRepository.save(group);
     }
 

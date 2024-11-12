@@ -3,9 +3,11 @@ package com.academicchimes.app.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import com.academicchimes.app.models.Message;
 import com.academicchimes.app.models.User;
+import com.academicchimes.app.models.WebSocketMessage;
 import com.academicchimes.app.kafka.ChatMessageProducer;
 import com.academicchimes.app.models.Group;
 import com.academicchimes.app.services.UserService;
@@ -22,6 +24,9 @@ import java.util.Set;
 public class ChatController {
 
     @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired
     private KafkaTemplate<String, Message> kafkaTemplate;
 
     @Autowired
@@ -36,11 +41,23 @@ public class ChatController {
     @Autowired
     private MessageService messageService;
 
+    @PostMapping("/groups")
+    public ResponseEntity<?> createGroup(@RequestBody Group group, @RequestParam String creatorId) {
+        Group createdGroup = groupService.createGroup(group.getName(), creatorId);
+        WebSocketMessage<Group> message = new WebSocketMessage<>("CREATE", createdGroup);
+        messagingTemplate.convertAndSend("/topic/group-updates", message);
+        return ResponseEntity.ok(createdGroup);
+    }
+
     @PostMapping("/send")
     public ResponseEntity<?> sendMessage(@RequestBody Message message) {
-        chatMessageProducer.sendMessage(message);
-        return ResponseEntity.ok().build();
+        Message savedMessage = messageService.saveMessage(message);
+        WebSocketMessage<Message> wsMessage = new WebSocketMessage<>("NEW_MESSAGE", savedMessage);
+        messagingTemplate.convertAndSend("/topic/messages", wsMessage);
+        return ResponseEntity.ok(savedMessage);
     }
+
+    
 
     @GetMapping("/groups")
     public ResponseEntity<Set<Group>> getUserGroups(@RequestParam String userId) {
@@ -48,15 +65,6 @@ public class ChatController {
         return ResponseEntity.ok(groupService.getUserGroups(user));
     }
 
-    @PostMapping("/groups")
-    public ResponseEntity<?> createGroup(@RequestBody Group group, @RequestParam String creatorId) {
-        User creator = userService.findByRegisterNoOrStaffId(creatorId);
-        if (!"staff".equals(creator.getRole())) {
-            return ResponseEntity.badRequest().body("Only staff can create groups");
-        }
-        Group createdGroup = groupService.createGroup(group.getName(), creator);
-        return ResponseEntity.ok(createdGroup);
-    }
 
     @PostMapping("/groups/{groupId}/members")
     public ResponseEntity<?> addGroupMember(@PathVariable Long groupId, @RequestParam String userId) {

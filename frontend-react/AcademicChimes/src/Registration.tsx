@@ -24,6 +24,7 @@ function Registration() {
 
     if(formData.password === formData.confirmPassword){
       try {
+        console.log(JSON.stringify({ ...formData, role }));
         const response = await fetch("http://localhost:8080/api/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

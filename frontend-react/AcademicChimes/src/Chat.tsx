@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import WebSocketService from './WebSocketService'
 
@@ -14,20 +14,32 @@ interface Message {
   fileType?: string
 }
 
+interface MessageUpdate {
+  type: 'NEW_MESSAGE'
+  message: Message
+}
+
 export default function Chat() {
   const { type, id } = useParams()
   const navigate = useNavigate()
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [file, setFile] = useState<File | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetchMessages()
-    WebSocketService.connect()
-    WebSocketService.subscribe('/topic/messages', (message: Message) => {
-      setMessages((prevMessages) => [...prevMessages, message])
-    })
+    const setupWebSocket = async () => {
+      try {
+        await WebSocketService.connect()
+        await WebSocketService.subscribe<MessageUpdate>('/topic/messages', (message) => {
+          setMessages((messages) => [...messages, message.payload])
+        })
+      } catch (error) {
+        console.error('Failed to set up WebSocket:', error)
+      }
+    }
+    setupWebSocket()
 
     return () => {
       WebSocketService.disconnect()
@@ -35,13 +47,26 @@ export default function Chat() {
   }, [type, id])
 
   const fetchMessages = async () => {
-    let url = `http://localhost:8080/api/chat/messages/${type}/${id}`
-    if (type === 'direct') {
-      url += `?senderId=${localStorage.getItem('userId')}&recipientId=${id}`
+    try {
+      const userId = localStorage.getItem('userId')
+      let url = `http://localhost:8080/api/chat/messages/${type}/${id}`
+      if (type === 'direct') {
+        url += `?senderId=${userId}&recipientId=${id}`
+      }
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages')
+      }
+      const data = await response.json()
+      setMessages(data)
+    } catch (error) {
+      console.error('Error fetching messages:', error)
+      setMessages([])
     }
-    const response = await fetch(url)
-    const data = await response.json()
-    setMessages(data)
   }
 
   const handleSendMessage = async () => {
@@ -55,15 +80,25 @@ export default function Chat() {
         formData.append('file', file)
       }
 
-      await fetch('http://localhost:8080/api/chat/send', {
-        method: 'POST',
-        body: formData,
-      })
-
-      setNewMessage('')
-      setFile(null)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
+      try {
+        const response = await fetch('http://localhost:8080/api/chat/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: formData,
+        })
+        if (!response.ok) {
+          throw new Error('Failed to send message')
+        }
+        setNewMessage('')
+        setFile(null)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+        fetchMessages()
+      } catch (error) {
+        console.error('Error sending message:', error)
       }
     }
   }
@@ -87,7 +122,7 @@ export default function Chat() {
       </header>
       <div className="flex-1 flex flex-col p-4">
         <div className="flex-1 overflow-y-auto mb-4 bg-white rounded shadow-md p-4">
-          {messages.map((message) => (
+          {Array.isArray(messages) && messages.map((message) => (
             <div key={message.id} className="mb-2">
               <strong>{message.sender.name}: </strong>
               {message.content}

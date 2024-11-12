@@ -1,9 +1,13 @@
 import { Client, StompSubscription } from '@stomp/stompjs';
 
+interface WebSocketMessage<T> {
+  type: string;
+  payload: T;
+}
+
 class WebSocketService {
   private client: Client;
   private connectPromise: Promise<void> | null = null;
-  private subscriptions: { [key: string]: StompSubscription } = {};
 
   constructor() {
     this.client = new Client({
@@ -11,11 +15,10 @@ class WebSocketService {
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
+      debug: (str) => {
+        console.log('STOMP: ' + str);
+      },
     });
-
-    this.client.onConnect = () => {
-      console.log('Connected to WebSocket');
-    };
 
     this.client.onStompError = (frame) => {
       console.error('STOMP error', frame);
@@ -34,6 +37,10 @@ class WebSocketService {
           console.error('STOMP error', frame);
           reject(new Error('Failed to connect to WebSocket'));
         };
+        this.client.onWebSocketError = (event) => {
+          console.error('WebSocket error', event);
+          reject(new Error('WebSocket error'));
+        };
       });
     }
     return this.connectPromise;
@@ -44,28 +51,26 @@ class WebSocketService {
       this.client.deactivate();
     }
     this.connectPromise = null;
-    this.subscriptions = {};
   }
 
-  async subscribe(destination: string, callback: (message: unknown) => void): Promise<void> {
+  async subscribe<T>(destination: string, callback: (message: WebSocketMessage<T>) => void): Promise<StompSubscription | undefined> {
     try {
       await this.connect();
-      if (!this.subscriptions[destination]) {
-        this.subscriptions[destination] = this.client.subscribe(destination, (message) => {
-          callback(JSON.parse(message.body));
-        });
-      }
+      return this.client.subscribe(destination, (message) => {
+        const parsedMessage = JSON.parse(message.body) as WebSocketMessage<T>;
+        callback(parsedMessage);
+      });
     } catch (error) {
       console.error('Failed to subscribe:', error);
     }
   }
 
-  async send(destination: string, body: unknown): Promise<void> {
+  async send<T>(destination: string, message: WebSocketMessage<T>) {
     try {
       await this.connect();
       this.client.publish({
         destination,
-        body: JSON.stringify(body),
+        body: JSON.stringify(message),
       });
     } catch (error) {
       console.error('Failed to send message:', error);

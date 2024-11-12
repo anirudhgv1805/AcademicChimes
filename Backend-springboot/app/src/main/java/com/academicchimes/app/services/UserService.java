@@ -16,6 +16,7 @@ public class UserService {
 
     public User saveUser(User user) {
         if (userRepository.existsByRegisterNoOrStaffId(user.getRegisterNo(), user.getStaffId())) {
+            System.out.println("register  no"+user.getRegisterNo()+"staff id"+user.getStaffId());
             throw new RuntimeException("User already exists");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
