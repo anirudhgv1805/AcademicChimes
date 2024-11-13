@@ -18,6 +18,7 @@ interface GroupUpdate {
 }
 
 export default function Dashboard() {
+  const backEndUrl = import.meta.env.VITE_BACKEND_URL;
   const navigate = useNavigate()
   const [groups, setGroups] = useState<Group[]>([])
   const [contacts, setContacts] = useState<User[]>([])
@@ -55,7 +56,7 @@ export default function Dashboard() {
 
   const fetchGroups = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/chat/groups?userId=${localStorage.getItem('userId')}`, {
+      const response = await fetch(`${backEndUrl}/api/chat/groups?userId=${localStorage.getItem('userId')}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -72,7 +73,7 @@ export default function Dashboard() {
 
   const fetchContacts = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/chat/users/search?query=${searchQuery}`, {
+      const response = await fetch(`${backEndUrl}/api/chat/users/search?query=${searchQuery}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -97,20 +98,25 @@ export default function Dashboard() {
   const handleCreateGroup = async () => {
     const groupName = prompt('Enter group name:')
     if (groupName) {
+      console.log(JSON.stringify({ 
+        name: groupName, 
+        creatorId: localStorage.getItem('userId')
+      }));
       try {
-        const response = await fetch('http://localhost:8080/api/chat/groups', {
+        const response = await fetch(`${backEndUrl}/api/chat/groups`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
           },
           body: JSON.stringify({ 
             name: groupName, 
-            creatorId: localStorage.getItem('userId') 
+            creatorId: localStorage.getItem('userId')
           }),
         })
         if (!response.ok) {
-          throw new Error('Failed to create group')
+          console.log(response.statusText);
+          throw new Error('Failed to create group');
         }
         const newGroup = await response.json()
         setGroups((prevGroups) => [...prevGroups, newGroup])

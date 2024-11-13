@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
+  const backEndUrl = import.meta.env.VITE_BACKEND_URL;
   const [credentials, setCredentials] = useState({
     id: '',
     password: '',
@@ -20,17 +21,17 @@ export default function Login() {
     setError('')
 
     try {
-      const response = await fetch('http://localhost:8080/api/login', {
+      const response = await fetch(`${backEndUrl}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       })
-
       if (response.ok) {
         const data = await response.json()
         localStorage.setItem('token', data.token)
-        localStorage.setItem('userId', data.userId)
+        localStorage.setItem('userId', credentials.id)
         localStorage.setItem('userRole', credentials.role)
+        console.log(localStorage.getItem('userId'));
         navigate('/dashboard')
       } else {
         setError('Invalid credentials')

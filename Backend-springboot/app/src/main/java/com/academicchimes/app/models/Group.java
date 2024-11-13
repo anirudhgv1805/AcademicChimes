@@ -47,7 +47,7 @@ public class Group {
         return creator;
     }
 
-    public void setCreator(String creatorId) {
-        this.creator = creatorId;
+    public void setCreator(User creator) {
+        this.creator = creator;
     }
 }

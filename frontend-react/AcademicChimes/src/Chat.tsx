@@ -14,12 +14,10 @@ interface Message {
   fileType?: string
 }
 
-interface MessageUpdate {
-  type: 'NEW_MESSAGE'
-  message: Message
-}
+
 
 export default function Chat() {
+  const backEndUrl = import.meta.env.VITE_BACKEND_URL;
   const { type, id } = useParams()
   const navigate = useNavigate()
   const [messages, setMessages] = useState<Message[]>([])
@@ -32,8 +30,8 @@ export default function Chat() {
     const setupWebSocket = async () => {
       try {
         await WebSocketService.connect()
-        await WebSocketService.subscribe<MessageUpdate>('/topic/messages', (message) => {
-          setMessages((messages) => [...messages, message.payload])
+        await WebSocketService.subscribe<Message>('/topic/messages', (message) => {
+          setMessages((prevMessages) => [...prevMessages, message.payload])
         })
       } catch (error) {
         console.error('Failed to set up WebSocket:', error)
@@ -49,7 +47,7 @@ export default function Chat() {
   const fetchMessages = async () => {
     try {
       const userId = localStorage.getItem('userId')
-      let url = `http://localhost:8080/api/chat/messages/${type}/${id}`
+      let url = `${backEndUrl}/api/chat/messages/${type}/${id}`
       if (type === 'direct') {
         url += `?senderId=${userId}&recipientId=${id}`
       }
@@ -79,9 +77,10 @@ export default function Chat() {
       if (file) {
         formData.append('file', file)
       }
+      console.log(formData);
 
       try {
-        const response = await fetch('http://localhost:8080/api/chat/send', {
+        const response = await fetch(`${backEndUrl}/api/chat/send`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`

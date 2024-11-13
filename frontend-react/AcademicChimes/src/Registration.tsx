@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function Registration() {
+  const backEndUrl = import.meta.env.VITE_BACKEND_URL;
   const navigate = useNavigate();
   const [role, setRole] = useState("student");
   const [formData, setFormData] = useState({
@@ -25,7 +26,7 @@ function Registration() {
     if(formData.password === formData.confirmPassword){
       try {
         console.log(JSON.stringify({ ...formData, role }));
-        const response = await fetch("http://localhost:8080/api/register", {
+        const response = await fetch(`${backEndUrl}/api/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...formData, role }),

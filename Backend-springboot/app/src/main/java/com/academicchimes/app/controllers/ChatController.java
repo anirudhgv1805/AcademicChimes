@@ -15,9 +15,12 @@ import com.academicchimes.app.services.GroupService;
 import com.academicchimes.app.services.MessageService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-@CrossOrigin(origins = "http://localhost:5173")
+
+
+@CrossOrigin(origins = "${cors.allowedOrigins}")
 @RestController
 @RequestMapping("/api/chat")
 
@@ -42,8 +45,9 @@ public class ChatController {
     private MessageService messageService;
 
     @PostMapping("/groups")
-    public ResponseEntity<?> createGroup(@RequestBody Group group, @RequestParam String creatorId) {
-        Group createdGroup = groupService.createGroup(group.getName(), creatorId);
+    public ResponseEntity<?> createGroup(@RequestBody Map<String, String> group) {
+        Group createdGroup = groupService.createGroup(group.get("name"), group.get("creatorId"));
+        System.out.println(group.get("name")+ group.get("creatorId"));
         WebSocketMessage<Group> message = new WebSocketMessage<>("CREATE", createdGroup);
         messagingTemplate.convertAndSend("/topic/group-updates", message);
         return ResponseEntity.ok(createdGroup);
@@ -51,6 +55,7 @@ public class ChatController {
 
     @PostMapping("/send")
     public ResponseEntity<?> sendMessage(@RequestBody Message message) {
+        System.out.println(message);
         Message savedMessage = messageService.saveMessage(message);
         WebSocketMessage<Message> wsMessage = new WebSocketMessage<>("NEW_MESSAGE", savedMessage);
         messagingTemplate.convertAndSend("/topic/messages", wsMessage);

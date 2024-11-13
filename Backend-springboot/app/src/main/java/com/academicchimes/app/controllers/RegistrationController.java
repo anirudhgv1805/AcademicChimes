@@ -10,7 +10,7 @@ import com.academicchimes.app.services.UserService;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "${cors.allowedOrigins}")
 public class RegistrationController {
     
     @Autowired
